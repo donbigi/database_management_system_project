@@ -1,0 +1,87 @@
+# ------------------------------
+
+# Terraform .gitignore
+
+# ------------------------------
+
+# Local .terraform directories
+
+**/.terraform/*
+
+# Terraform state files
+
+*.tfstate
+*.tfstate.*
+
+# Crash logs
+
+crash.log
+crash.*.log
+
+# Exclude all .tfvars files (may contain secrets)
+
+*.tfvars
+*.tfvars.json
+
+# Ignore override files
+
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Terraform plan output
+
+*.tfplan
+*.plan
+
+# CLI configuration files
+
+.terraformrc
+terraform.rc
+
+# Lock file (keep if using teams / CI for reproducibility)
+
+# Comment this OUT if you want provider version locking
+
+#.terraform.lock.hcl
+
+# ------------------------------
+
+# Sensitive files
+
+# ------------------------------
+
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+secrets.auto.tfvars
+
+# ------------------------------
+
+# Editor / OS junk
+
+# ------------------------------
+
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*.tmp
+
+.vscode/
+.idea/
+
+# ------------------------------
+
+# Logs
+
+# ------------------------------
+
+*.log
+
+# ------------------------------
+
+# Op
