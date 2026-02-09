@@ -28,11 +28,9 @@ fi
 
 cd rocksdb
 
-# Build release static library only
-make static_lib -j$(nproc)
+# Build release static library + db_bench together
+make static_lib db_bench -j$(nproc) DEBUG_LEVEL=0
 
-# Build db_bench WITHOUT triggering shared/debug builds
-make -j$(nproc) tools/db_bench
 
 # Prepare data directory
 mkdir -p /mnt/data/dbbench
