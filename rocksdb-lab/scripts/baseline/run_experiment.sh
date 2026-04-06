@@ -42,12 +42,12 @@ for i in $(seq 1 $RUNS); do
 
     # 2. Reset and Load Dataset
     echo "[2/4] Loading fresh dataset..."
-    bash "$SCRIPTS_DIR/load_dataset.sh"
+    bash "$SCRIPTS_DIR/../shared/load_dataset.sh"
 
     # Add Warmup phase
     echo "[Warmup] Running 30 seconds warmup..."
-    python_warmup="$SCRIPTS_DIR/run_workload.sh"
-    bash "$python_warmup" "balanced" 30 > /dev/null 2>&1
+    python_warmup="$SCRIPTS_DIR/../shared/run_workload.sh"
+    bash "$python_warmup" "balanced" 30 > "$WORKSPACE_DIR/warmup.log" 2>&1 || echo "[Warmup] WARNING: Warmup script failed! Check warmup.log for details. Continuing baseline..."
 
     # 3. Run Workload with Config
     echo "[3/4] Running primary workload ($WORKLOAD) for 5 minutes..."
@@ -66,7 +66,7 @@ for i in $(seq 1 $RUNS); do
       
     # 4. Collect Metrics
     echo "[4/4] Collecting Metrics..."
-    python3 "$SCRIPTS_DIR/collect_metrics.py" \
+    python3 "$SCRIPTS_DIR/../shared/collect_metrics.py" \
         --benchmark_out "$WORKLOAD_OUT" \
         --rocksdb_log "$DB_DIR/LOG" \
         --output "$RESULTS_DIR/final_results.csv" \

@@ -37,7 +37,7 @@ case $WORKLOAD_TYPE in
     # 90% read, 10% update natively using mixgraph or readrandomwriterandom
     ./db_bench $BASE_ARGS \
       --benchmarks=readrandomwriterandom \
-      --read_write_percent=90 \
+      --readwritepercent=90 \
       > "$RESULTS_DIR/${WORKLOAD_TYPE}_results.txt"
     ;;
   
@@ -45,7 +45,7 @@ case $WORKLOAD_TYPE in
     # 10% read, 90% update
     ./db_bench $BASE_ARGS \
       --benchmarks=readrandomwriterandom \
-      --read_write_percent=10 \
+      --readwritepercent=10 \
       > "$RESULTS_DIR/${WORKLOAD_TYPE}_results.txt"
     ;;
 
@@ -53,22 +53,22 @@ case $WORKLOAD_TYPE in
     # 50% read, 50% update
     ./db_bench $BASE_ARGS \
       --benchmarks=readrandomwriterandom \
-      --read_write_percent=50 \
+      --readwritepercent=50 \
       > "$RESULTS_DIR/${WORKLOAD_TYPE}_results.txt"
     ;;
 
   dynamic)
     # Phase 1: Write Heavy (10% read)
     echo "Running Phase 1: Write Heavy..."
-    ./db_bench $BASE_ARGS --duration=$((DURATION/3)) --benchmarks=readrandomwriterandom --read_write_percent=10 > "$RESULTS_DIR/dynamic_phase1.txt"
+    ./db_bench $BASE_ARGS --duration=$((DURATION/3)) --benchmarks=readrandomwriterandom --readwritepercent=10 > "$RESULTS_DIR/dynamic_phase1.txt"
     
     # Phase 2: Balanced (50% read)
     echo "Running Phase 2: Balanced..."
-    ./db_bench $BASE_ARGS --duration=$((DURATION/3)) --benchmarks=readrandomwriterandom --read_write_percent=50 > "$RESULTS_DIR/dynamic_phase2.txt"
+    ./db_bench $BASE_ARGS --duration=$((DURATION/3)) --benchmarks=readrandomwriterandom --readwritepercent=50 > "$RESULTS_DIR/dynamic_phase2.txt"
 
     # Phase 3: Read Heavy (90% read)
     echo "Running Phase 3: Read Heavy..."
-    ./db_bench $BASE_ARGS --duration=$((DURATION/3)) --benchmarks=readrandomwriterandom --read_write_percent=90 > "$RESULTS_DIR/dynamic_phase3.txt"
+    ./db_bench $BASE_ARGS --duration=$((DURATION/3)) --benchmarks=readrandomwriterandom --readwritepercent=90 > "$RESULTS_DIR/dynamic_phase3.txt"
     ;;
 
   *)

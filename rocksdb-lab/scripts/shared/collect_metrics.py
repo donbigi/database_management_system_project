@@ -44,8 +44,22 @@ def parse_rocks_log(log_path):
             for line in reversed(lines):
                 # Search backwards for the final Cumulative compaction stats
                 # `Cumulative compaction: 10.20 GB write, 15.30 MB read`
-                if "Cumulative compaction:" in line:
-                    pass # Custom parsing would go here depending on precise RocksDB version log output
+                if "Cumulative compaction:" in line and stats["compaction_bytes_written"] == 0:
+                    c_write = re.search(r"([0-9.]+)\s+([KMG]?B)\s+write", line)
+                    c_read = re.search(r"([0-9.]+)\s+([KMG]?B)\s+read", line)
+                    
+                    def to_bytes(match):
+                        if not match: return 0
+                        val, unit = float(match.group(1)), match.group(2)
+                        return int(val * {"B": 1, "KB": 1024, "MB": 1024**2, "GB": 1024**3}.get(unit, 1))
+                        
+                    stats["compaction_bytes_written"] = to_bytes(c_write)
+                    stats["compaction_bytes_read"] = to_bytes(c_read)
+                    
+                # Try to catch Read Amp if present in the same block
+                ra_match = re.search(r"Read Amp:\s+([0-9.]+)", line)
+                if ra_match and stats["read_amp"] is None:
+                    stats["read_amp"] = float(ra_match.group(1))
                 
                 # Search backwards for Read Amp / Write Amp
                 # RocksDB LOG often contains `Write Amp: 2.4` in its periodic stall/compaction outputs
