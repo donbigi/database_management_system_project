@@ -39,12 +39,21 @@ fi
 
 cd rocksdb
 
-# Checkout a stable release (optional, e.g., v8.10.0)
-# git checkout v8.10.0
+# Checkout a stable release for guaranteed compilation
+git checkout v8.10.0
+
+# Add swap to prevent OOM during parallel compilation
+if [ ! -f /swapfile ] && [ ! -b /swapfile ]; then
+    echo "Creating swapfile to prevent OOM..."
+    sudo fallocate -l 4G /swapfile
+    sudo chmod 600 /swapfile
+    sudo mkswap /swapfile
+    sudo swapon /swapfile
+fi
 
 # Build release static library + db_bench together
 echo "Building db_bench..."
-make db_bench -j$(nproc) DEBUG_LEVEL=0
+DISABLE_WARNING_AS_ERROR=1 make db_bench -j$(nproc) DEBUG_LEVEL=0
 
 # Verify db_bench runs and document default configuration
 echo "Verifying db_bench and documenting default config..."
