@@ -1,50 +1,40 @@
 #!/bin/bash
-set -e
-set -x   # log commands for debugging
+set -x
 
-# Update system
-apt-get update
+# Prepare workspace for scripts and RocksDB
+WORKSPACE_DIR="/opt/rocksdb-workspace"
+mkdir -p "$WORKSPACE_DIR"
+cd "$WORKSPACE_DIR"
 
-# Install dependencies
-apt-get install -y \
-  build-essential \
-  cmake \
-  git \
-  libsnappy-dev \
-  zlib1g-dev \
-  libbz2-dev \
-  liblz4-dev \
-  libzstd-dev \
-  libgflags-dev
+echo "Fetching scripts from GCP Metadata..."
 
-# Prepare workspace
-mkdir -p /opt
-cd /opt
+# Function to fetch metadata robustly
+get_metadata() {
+  local key=$1
+  local output=$2
+  curl -s -f -H "Metadata-Flavor: Google" "http://metadata.google.internal/computeMetadata/v1/instance/attributes/${key}" > "${output}"
+}
 
-# Clone RocksDB if not present
-if [ ! -d "rocksdb" ]; then
-  git clone https://github.com/facebook/rocksdb.git
-fi
+# Fetch all scripts
+get_metadata "setup_rocksdb" "setup_rocksdb.sh"
+get_metadata "load_dataset" "load_dataset.sh"
+get_metadata "run_workload" "run_workload.sh"
+get_metadata "apply_config" "apply_config.py"
+get_metadata "collect_metrics" "collect_metrics.py"
+get_metadata "run_experiment" "run_experiment.sh"
 
-cd rocksdb
+# Make them executable
+chmod +x *.sh *.py
 
-# Build release static library + db_bench together
-make static_lib db_bench -j$(nproc) DEBUG_LEVEL=0
+# Execute the main setup which builds RocksDB (public repo clone, no auth needed)
+echo "Running RocksDB setup..."
+./setup_rocksdb.sh
 
+# The master experiment script is intentionally NOT run on startup to save costs.
+# To run benchmarks manually, SSH into the instance and run:
+#   cd /opt/rocksdb-workspace
+#   ./run_experiment.sh balanced 3
 
-# Prepare data directory
-mkdir -p /mnt/data/dbbench
-
-# Run experiment
-./db_bench \
-  --benchmarks=fillrandom \
-  --num=1000000 \
-  --db=/mnt/data/dbbench \
-  --compression_type=snappy \
-  > /opt/results.txt
-
-# Upload results (optional but recommended)
-# gsutil cp /opt/results.txt gs://YOUR_BUCKET/
-
-# Shutdown VM when done
-shutdown -h now
+# If desired, upload results to a bucket, or shut down the machine.
+# gsutil cp /opt/rocksdb-workspace/results/final_results.csv gs://YOUR_BUCKET/
+# shutdown -h now

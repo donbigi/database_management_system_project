@@ -22,6 +22,15 @@ resource "google_compute_instance" "rocksdb_vm" {
     access_config {}
   }
 
+  metadata = {
+    setup_rocksdb   = file("scripts/setup_rocksdb.sh")
+    load_dataset    = file("scripts/load_dataset.sh")
+    run_workload    = file("scripts/run_workload.sh")
+    apply_config    = file("scripts/apply_config.py")
+    collect_metrics = file("scripts/collect_metrics.py")
+    run_experiment  = file("scripts/run_experiment.sh")
+  }
+
   metadata_startup_script = file("scripts/startup.sh")
 
   service_account {
