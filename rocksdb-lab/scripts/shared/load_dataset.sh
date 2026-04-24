@@ -11,7 +11,7 @@ DB_DIR="/mnt/data/rocksdb"
 ROCKSDB_PATH="$WORKSPACE_DIR/rocksdb"
 
 # Dataset Specs
-RECORD_COUNT=5000000    # 5 Million records
+RECORD_COUNT=50000000    # 50 Million records
 VALUE_SIZE=1024         # 1 KB value size
 KEY_SIZE=16             # 16 byte keys
 

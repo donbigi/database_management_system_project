@@ -2,7 +2,7 @@
 set -e
 
 echo "========================================="
-echo "  RocksDB Experiment Orchestrator"
+echo "  RocksDB Active Learning Orchestrator"
 echo "========================================="
 
 if [ "$#" -lt 1 ]; then
@@ -22,40 +22,34 @@ RESULTS_DIR="${WORKSPACE_DIR}/results"
 
 mkdir -p "$RESULTS_DIR"
 
-echo "Executing $RUNS runs of $WORKLOAD workload..."
+# Install required python packages if not already present
+pip3 install scikit-learn numpy >/dev/null 2>&1 || true
+
+echo "----------------------------------------"
+echo " Phase 1: Active Tuning "
+echo "----------------------------------------"
+OPTIONS_FILE="$WORKSPACE_DIR/OPTIONS_AL.ini"
+python3 "$SCRIPTS_DIR/active_tuner.py" "$OPTIONS_FILE" > "$RESULTS_DIR/active_tuning_progress.log"
+cat "$RESULTS_DIR/active_tuning_progress.log"
+
+echo "Executing $RUNS runs of $WORKLOAD workload with AL tuned config..."
 
 for i in $(seq 1 $RUNS); do
     echo "----------------------------------------"
     echo " Starting Run $i / $RUNS"
     echo "----------------------------------------"
     
-    # 1. Generate Config
-    echo "[1/4] Generating Configuration..."
-    python3 "$SCRIPTS_DIR/apply_config.py" --output "$WORKSPACE_DIR/OPTIONS.ini" \
-        --memtable_size 64 \
-        --level_base_size 256 \
-        --level_multiplier 10 \
-        --compaction_trigger 4 \
-        --stats
-        
-    OPTIONS_FILE="$WORKSPACE_DIR/OPTIONS.ini"
-
-    # 2. Reset and Load Dataset
-    echo "[2/4] Loading fresh dataset..."
+    echo "[1/3] Loading fresh dataset..."
     bash "$SCRIPTS_DIR/../shared/load_dataset.sh"
 
-    # Add Warmup phase
     echo "[Warmup] Running 30 seconds warmup..."
     python_warmup="$SCRIPTS_DIR/../shared/run_workload.sh"
-    bash "$python_warmup" "balanced" 30 > "$WORKSPACE_DIR/warmup.log" 2>&1 || echo "[Warmup] WARNING: Warmup script failed! Check warmup.log for details. Continuing baseline..."
+    bash "$python_warmup" "balanced" 30 > "$WORKSPACE_DIR/warmup_al.log" 2>&1 || echo "[Warmup] WARNING: Warmup script failed!"
 
-    # 3. Run Workload with Config
-    echo "[3/4] Running primary workload ($WORKLOAD) for 5 minutes..."
-    WORKLOAD_OUT="$RESULTS_DIR/run_${i}_${WORKLOAD}.txt"
+    echo "[2/3] Running primary AL benchmark ($WORKLOAD) for 5 minutes..."
+    WORKLOAD_OUT="$RESULTS_DIR/run_${i}_${WORKLOAD}_al.txt"
     cd "$WORKSPACE_DIR/rocksdb"
     
-    # Note: Using db_bench directly here to pass config via options_file safely, 
-    # as run_workload.sh doesn't currently accept custom args without modifying it.
     ./db_bench --db="$DB_DIR" --use_existing_db=1 --num=50000000 \
       --benchmarks=readrandomwriterandom \
       --duration=300 \
@@ -64,18 +58,17 @@ for i in $(seq 1 $RUNS); do
       --options_file="$OPTIONS_FILE" \
       > "$WORKLOAD_OUT"
       
-    # 4. Collect Metrics
-    echo "[4/4] Collecting Metrics..."
+    echo "[3/3] Collecting Metrics..."
     python3 "$SCRIPTS_DIR/../shared/collect_metrics.py" \
         --benchmark_out "$WORKLOAD_OUT" \
         --rocksdb_log "$DB_DIR/LOG" \
-        --output "$RESULTS_DIR/final_results.csv" \
-        --run_id "${WORKLOAD}_run_${i}"
+        --output "$RESULTS_DIR/final_results_al.csv" \
+        --run_id "${WORKLOAD}_al_run_${i}"
         
     echo "Run $i Completed."
 done
 
 echo "========================================="
 echo " All experiments finished."
-echo " Final results stored in $RESULTS_DIR/final_results.csv"
+echo " Final results stored in $RESULTS_DIR/final_results_al.csv"
 echo "========================================="

@@ -29,6 +29,13 @@ resource "google_compute_instance" "rocksdb_vm" {
     collect_metrics = file("scripts/shared/collect_metrics.py")
     apply_config    = file("scripts/baseline/apply_config.py")
     run_experiment  = file("scripts/baseline/run_experiment.sh")
+    al_tuner        = file("scripts/active_learning/active_tuner.py")
+    al_run_iter     = file("scripts/active_learning/run_al_iteration.sh")
+    al_run_experiment = file("scripts/active_learning/run_experiment.sh")
+    rl_tuner        = file("scripts/rl/rl_tuner.py")
+    rl_run_iter     = file("scripts/rl/run_rl_iteration.sh")
+    rl_run_experiment = file("scripts/rl/run_experiment.sh")
+    master_benchmark  = file("scripts/master_benchmark.sh")
   }
 
   metadata_startup_script = file("scripts/shared/startup.sh")
