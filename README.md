@@ -3,7 +3,7 @@
 
 This repository contains the benchmarking orchestration suite for evaluating autonomous machine learning tuning algorithms directly against a physical RocksDB Log-Structured Merge-Tree (LSM-Tree). 
 
-## 📂 Project Architecture
+## Project Architecture
 *   `scripts/baseline/`: Core static load-testing configurations representing human-DBAs.
 *   `scripts/active_learning/`: CAMAL-inspired Polynomial Regression tuner (`active_tuner.py`).
 *   `scripts/rl/`: RusKey-inspired Continuous Actor-Critic agent (`rl_tuner.py`).
