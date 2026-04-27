@@ -10,6 +10,12 @@ APPLY_CONFIG = os.path.join(SCRIPTS_DIR, "../baseline/apply_config.py")
 RUN_ITER = os.path.join(SCRIPTS_DIR, "run_al_iteration.sh")
 
 def generate_options(T, Mb, output_path):
+    """
+    Generates a new RocksDB OPTIONS file using the baseline configuration script.
+    
+    This function seamlessly bridges the Active Learning loop with RocksDB's C++ core by dynamically 
+    crafting a configuration .ini file on the disk, mapping 'T' (Size Ratio) and 'Mb' (Write Buffer limit).
+    """
     subprocess.run([
         "python3", APPLY_CONFIG,
         "--output", output_path,
@@ -19,6 +25,15 @@ def generate_options(T, Mb, output_path):
     ], check=True)
 
 def run_iteration(T, Mb):
+    """
+    This function enforces the Cost-Mapping strategy by:
+    1. Temporarily applying the requested T and Mb tuning shapes.
+    2. Blasting the database with a heavy workload to agitate the LSM-Tree structure.
+    3. Scraping standard output to map the structural degradation/improvement directly to Foreground Latency.
+    
+    Returns:
+        float: The recorded latency in microseconds (µs). If a write-stall causes failure, returns infinity.
+    """
     options_file = "/tmp/OPTIONS_AL_TEMP.ini"
     generate_options(T, Mb, options_file)
     result = subprocess.run([
@@ -43,6 +58,12 @@ def run_iteration(T, Mb):
         return float('inf')
 
 def active_learn_parameter(param_name, fixed_params, search_space, n_initial=3, n_rounds=7):
+    """
+    The core CAMAL active learning optimization loop using Polynomial Regression.
+    
+    This function implements "Decoupled Tuning". It isolates a single parameter (`param_name`) while keeping 
+    others locked (`fixed_params`), aggressively reducing the mathematical dimensionality of the tuning space.
+    """
     X_train = []
     y_train = []
     

@@ -16,6 +16,12 @@ T_MIN, T_MAX = 2.0, 20.0
 MB_MIN, MB_MAX = 16.0, 128.0
 
 def generate_options(T, Mb, output_path):
+    """
+    Generates a new RocksDB OPTIONS file using the baseline configuration script.
+    
+    This crafts the configuration .ini file, dynamically bridging the Python RL agent 
+    with RocksDB's C++ core by mapping the Actor's decided 'T' and 'Mb' parameters.
+    """
     subprocess.run([
         "python3", APPLY_CONFIG,
         "--output", output_path,
@@ -25,6 +31,12 @@ def generate_options(T, Mb, output_path):
     ], check=True)
 
 def run_iteration(T, Mb):
+    """
+    Executes a short db_bench empirical test burst using the Actor's proposed configuration.
+    
+    Temporarily applies the requested tuning shapes and monitors the foreground latency to 
+    determine the cost (reward formulation) of the Actor's configuration choice.
+    """
     options_file = "/tmp/OPTIONS_RL_TEMP.ini"
     generate_options(T, Mb, options_file)
     result = subprocess.run([
@@ -47,6 +59,12 @@ def run_iteration(T, Mb):
         return float('inf')
 
 class Actor(nn.Module):
+    """
+    The Continuous Policy approximation network.
+    
+    Observes the current database state (recent latency and parameters) and outputs 
+    continuous boundary values [-1, 1] mapped to optimal Size Ratio (T) and Buffer Size (Mb).
+    """
     def __init__(self, state_dim, action_dim):
         super(Actor, self).__init__()
         self.fc1 = nn.Linear(state_dim, 64)
@@ -60,6 +78,12 @@ class Actor(nn.Module):
         return torch.tanh(self.out(x))
 
 class Critic(nn.Module):
+    """
+    The Value approximation network.
+    
+    Evaluates the quality of the Actor's decision by taking both the database State and 
+    the proposed Action as input, outputting a scalar Q-value predicting future latency cost.
+    """
     def __init__(self, state_dim, action_dim):
         super(Critic, self).__init__()
         self.fc1 = nn.Linear(state_dim + action_dim, 64)
@@ -73,12 +97,26 @@ class Critic(nn.Module):
         return self.out(x)
 
 def unnormalize_action(action):
+    """
+    Maps the Actor's normalized mathematical output [-1, 1] back into actual 
+    RocksDB physical boundaries (e.g., T between [2, 20]).
+    """
     # action is [-1, 1]
     T = ((action[0] + 1.0) / 2.0) * (T_MAX - T_MIN) + T_MIN
     Mb = ((action[1] + 1.0) / 2.0) * (MB_MAX - MB_MIN) + MB_MIN
     return np.clip(T, T_MIN, T_MAX), np.clip(Mb, MB_MIN, MB_MAX)
 
 def train_rl(episodes=15):
+    """
+    The Lightweight Continuous Actor-Critic training loop.
+    
+    Executes online, single-step Temporal Difference (TD) updates:
+    1. Actor selects action (T, Mb) with exploration noise.
+    2. Action is evaluated dynamically on RocksDB to extract the real empirical latency.
+    3. Transforms Latency -> Negative Reward.
+    4. Re-calculates and updates the Critic (MSE Loss) and the Actor online, explicitly 
+       omitting a replay buffer matrix to maximize iteration loop speed.
+    """
     state_dim = 3 # (T_norm, Mb_norm, lat_norm)
     action_dim = 2 # (T, Mb)
     
